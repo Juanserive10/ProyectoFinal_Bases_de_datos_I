@@ -392,7 +392,37 @@ INSERT INTO Factura VALUES
 (9,'2024-02-01',25000,'PAGADA',9),
 (10,'2024-02-05',850000,'PENDIENTE',10);
 
+DELIMITER $$
+CREATE TRIGGER trg_no_hosp_activa
+BEFORE INSERT ON Hospitalizacion
+FOR EACH ROW
+BEGIN
+    IF EXISTS (
+        SELECT 1 
+        FROM Hospitalizacion
+        WHERE ced_pac = NEW.ced_pac
+          AND fecha_alta IS NULL
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'El paciente ya tiene una hospitalización activa.';
+    END IF;
+END$$
+DELIMITER ;
 
+DELIMITER $$
+CREATE TRIGGER trg_no_consulta_solapada
+BEFORE INSERT ON Consulta
+FOR EACH ROW
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM Consulta
+        WHERE ced_med = NEW.ced_med
+          AND fecha_consul = NEW.fecha_consul
+    ) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'El médico ya tiene una consulta en esa fecha.';
+    END IF;
+END$$
 
 
 
