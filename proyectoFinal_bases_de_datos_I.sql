@@ -30,6 +30,17 @@ CREATE TABLE Paciente(
 --ALTER TABLE Paciente
 --MODIFY COLUMN fecha_nac DATE;
 
+ALTER TABLE Paciente
+ADD CONSTRAINT chk_tipo_pac
+CHECK (tipo_pac IN ('UCI', 'AMBULATORIO','HOSPITALIZADO','URGENCIA','CRONICO'));
+
+ALTER TABLE Paciente 
+DROP CONSTRAINT chk_tipo_pac;
+
+ALTER TABLE Paciente
+ADD CONSTRAINT chk_tipo_pac
+CHECK (tipo_pac IN ('AMBULATORIO','HOSPITALIZADO','URGENCIA','CRONICO'));
+
 CREATE TABLE Medico(
 	ced_med int not null,
     nombre_med varchar(30),
