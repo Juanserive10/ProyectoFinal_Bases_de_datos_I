@@ -407,6 +407,7 @@ BEGIN
             SET MESSAGE_TEXT = 'El paciente ya tiene una hospitalización activa.';
     END IF;
 END$$
+
 DELIMITER ;
 
 DELIMITER $$
@@ -423,6 +424,13 @@ BEGIN
         SET MESSAGE_TEXT = 'El médico ya tiene una consulta en esa fecha.';
     END IF;
 END$$
+
+SELECT 
+    DATE_FORMAT(fecha_ingreso, '%Y-%m') AS mes,
+    COUNT(DISTINCT id_cama) AS camas_ocupadas,
+    (COUNT(DISTINCT id_cama) / 12) * 100 AS tasa_ocupacion
+FROM hospitalizacion
+GROUP BY mes;
 
 
 
