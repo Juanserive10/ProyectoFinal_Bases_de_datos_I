@@ -435,6 +435,88 @@ SELECT
 FROM hospitalizacion
 GROUP BY mes;
 
+CREATE VIEW consulta_2 AS
+SELECT 
+    m.ced_med,
+    m.nombre_med,
+    (
+        (SELECT COUNT(*) FROM Consulta c WHERE c.ced_med = m.ced_med) +
+        (SELECT COUNT(*) FROM Hospitalizacion h WHERE h.ced_med = m.ced_med) +
+        (SELECT COUNT(*) FROM Procedimiento p WHERE p.Ced_Med = m.ced_med)
+    ) AS productividad
+FROM Medico m
+ORDER BY productividad DESC;
+
+CREATE VIEW consulta_3 AS
+SELECT h1.ced_pac, p.nombre_pac, h1.fecha_ingreso AS ingreso_inicial, h2.fecha_ingreso AS readmision
+FROM Hospitalizacion h1
+JOIN Hospitalizacion h2 ON h1.ced_pac = h2.ced_pac 
+    AND h2.fecha_ingreso > h1.fecha_ingreso
+    AND DATEDIFF(h2.fecha_ingreso, h1.fecha_ingreso) <= 30
+JOIN Paciente p ON p.ced_pac = h1.ced_pac;
+
+CREATE VIEW consulta_4 AS
+SELECT tp.tipo_proced_nom, COUNT(p.proced_id) AS veces,tp.costo_estandar,
+ (COUNT(p.proced_id) * tp.costo_estandar) AS ingresos,
+ ((COUNT(p.proced_id) * tp.costo_estandar) - tp.costo_estandar) AS margen
+FROM Tipo_Procedimiento tp
+LEFT JOIN Procedimiento p ON p.tipo_proced_id = tp.tipo_proced_id
+GROUP BY tp.tipo_proced_nom, tp.costo_estandar;
+
+CREATE VIEW consulta_5 AS
+SELECT m.nombre_medica, COUNT(om.orden_id) AS veces_usado
+FROM Medicamento m
+LEFT JOIN Orden_Medicamento om ON om.medicamento_id = m.medicamento_id
+GROUP BY m.nombre_medica
+ORDER BY veces_usado DESC;
+
+CREATE VIEW consulta_6 AS
+SELECT nombreDep, AVG(DATEDIFF(fecha_consul, fecha_soli)) AS Tiempo_promedio_espera
+FROM consulta c
+JOIN medico m ON m.ced_med = c.ced_med
+JOIN departamento d ON d.id_Dep = m.id_Dep
+GROUP BY nombreDep;
+
+CREATE VIEW consulta_7 AS
+SELECT DATE_FORMAT(fecha_consul, '%Y-%m') AS mes, COUNT(id_consulta) AS total_consultas
+FROM Consulta
+GROUP BY DATE_FORMAT(fecha_consul, '%Y-%m');
+
+CREATE VIEW consulta_8 AS
+SELECT p.ced_pac, p.nombre_pac, COUNT(c.id_consulta) AS total_consultas
+FROM Paciente p
+JOIN Consulta c ON p.ced_pac = c.ced_pac
+WHERE p.tipo_pac = 'CRONICO'
+GROUP BY p.ced_pac, p.nombre_pac
+ORDER BY total_consultas DESC;
+
+CREATE VIEW consulta_10 AS
+SELECT nombre_medica, tipo_proced_nom, COUNT(f.medicamento_id) AS cant_medicamentos
+FROM  procedimiento p
+JOIN origen o ON p.proced_id = o.Proced_Id
+JOIN tipo_procedimiento t ON t.tipo_proced_id = p.tipo_proced_id
+JOIN orden_medicamento f ON f.id_Origen = o.id_Origen
+JOIN medicamento m ON m.medicamento_id = f.medicamento_id
+GROUP BY nombre_medica, tipo_proced_nom
+ORDER BY cant_medicamentos DESC;
+
+RENAME TABLE consulta_10 TO consulta_9;
+
+CREATE VIEW consulta_10 AS
+SELECT p.ced_pac, p.nombre_pac
+FROM Paciente p
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM Tipo_Procedimiento tp
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM Procedimiento pr
+        WHERE pr.Ced_Pac = p.ced_pac
+        AND pr.tipo_proced_id = tp.tipo_proced_id
+    )
+);
+
+
 
 
 
