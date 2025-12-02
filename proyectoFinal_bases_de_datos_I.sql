@@ -425,6 +425,8 @@ BEGIN
     END IF;
 END$$
 
+DELIMITER ;
+
 CREATE VIEW consulta_1 AS
 SELECT 
     DATE_FORMAT(fecha_ingreso, '%Y-%m') AS mes,
