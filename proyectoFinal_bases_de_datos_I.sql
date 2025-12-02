@@ -425,12 +425,14 @@ BEGIN
     END IF;
 END$$
 
+CREATE VIEW consulta_1 AS
 SELECT 
     DATE_FORMAT(fecha_ingreso, '%Y-%m') AS mes,
     COUNT(DISTINCT id_cama) AS camas_ocupadas,
     (COUNT(DISTINCT id_cama) / 12) * 100 AS tasa_ocupacion
 FROM hospitalizacion
 GROUP BY mes;
+
 
 
 
