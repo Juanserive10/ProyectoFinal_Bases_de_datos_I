@@ -427,6 +427,9 @@ END$$
 
 DELIMITER ;
 
+ALTER TABLE tipo_procedimiento
+DROP COLUMN duracion_min;
+
 CREATE VIEW consulta_1 AS
 SELECT 
     DATE_FORMAT(fecha_ingreso, '%Y-%m') AS mes,
