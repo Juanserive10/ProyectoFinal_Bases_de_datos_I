@@ -519,6 +519,70 @@ WHERE NOT EXISTS (
     )
 );
 
+CREATE VIEW consulta_11 AS
+SELECT d.nombreDep, COUNT(DISTINCT m.ced_med) AS medicos, COUNT(DISTINCT c.id_consulta) AS consultas
+FROM Departamento d
+LEFT JOIN Medico m ON m.id_Dep = d.id_Dep
+LEFT JOIN Consulta c ON c.ced_med = m.ced_med
+GROUP BY d.nombreDep;
+
+CREATE VIEW consulta_12 AS
+SELECT m.nombre_med, COUNT(DISTINCT c.id_consulta) AS consultas,
+COUNT(DISTINCT h.id_hospitalizacion) AS cant_Hospitalizaciones
+FROM Medico m
+LEFT JOIN Consulta c ON c.ced_med = m.ced_med
+LEFT JOIN  hospitalizacion h ON h.ced_med = m.ced_med
+GROUP BY m.nombre_med;
+
+CREATE VIEW consulta_13 AS
+SELECT diagnost_ingreso, SUM(DATEDIFF(fecha_alta, fecha_ingreso)) AS Duracion_dias
+FROM procedimiento p 
+JOIN hospitalizacion h ON h.ced_med = p.Ced_Med
+GROUP BY diagnost_ingreso;
+
+CREATE VIEW consulta_14 AS
+SELECT COALESCE(p1.nombre_pac, p2.nombre_pac, p3.nombre_pac) AS nombre_pac,
+	f.montoTotal,
+    DATEDIFF(current_date(), f.fecha_fac) AS dias_pendiente
+FROM Factura f
+JOIN Origen o ON o.id_origen = f.id_origen
+LEFT JOIN Consulta c ON c.id_consulta = o.id_consulta
+LEFT JOIN Paciente p1 ON p1.ced_pac = c.ced_pac
+LEFT JOIN Procedimiento pr ON pr.proced_id = o.proced_id
+LEFT JOIN Paciente p2 ON p2.ced_pac = pr.Ced_Pac
+LEFT JOIN Hospitalizacion h ON h.id_hospitalizacion = o.id_hospitalizacion
+LEFT JOIN Paciente p3 ON p3.ced_pac = h.ced_pac
+WHERE f.estado = 'PENDIENTE';
+
+
+CREATE VIEW consulta_15 AS
+SELECT p.nombre_pac, SUM(om.cant * m.costo_unitario) AS Costo_total
+FROM paciente p 
+JOIN origen o ON o.id_Origen IN (
+SELECT id_origen 
+FROM orden_medicamento
+)
+JOIN orden_medicamento om ON om.id_origen = o.id_Origen
+JOIN medicamento m ON m.medicamento_id = om.medicamento_id
+GROUP BY p.nombre_pac;
+
+CREATE VIEW consulta_16 AS
+SELECT nombre_pac, COUNT(h.id_hospitalizacion) AS cant_readmisiones,
+SUM(montoTotal) AS costo_total
+FROM paciente p 
+JOIN hospitalizacion h ON p.ced_pac = h.ced_pac
+JOIN origen o ON o.id_hospitalizacion = h.id_hospitalizacion
+JOIN factura f ON f.id_Origen = o.id_Origen
+GROUP BY nombre_pac
+HAVING COUNT(h.id_hospitalizacion) >= 2;
+
+CREATE VIEW consulta_17 AS
+SELECT m.ced_med, m.nombre_med, COUNT(result) AS pacientes_referidos
+FROM Consulta c
+JOIN Medico m ON c.ced_med = m.ced_med
+WHERE c.result = 'REFERIDO'
+GROUP BY m.ced_med, m.nombre_med
+ORDER BY pacientes_referidos DESC;
 
 
 
