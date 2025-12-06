@@ -585,6 +585,77 @@ GROUP BY m.ced_med, m.nombre_med
 ORDER BY pacientes_referidos DESC;
 
 
+CREATE VIEW consulta_adicional_1 AS
+-- Costos médicos totales por paciente
+SELECT p.nombre_pac, SUM(f.montoTotal) AS costo_total_paciente
+FROM paciente p
+JOIN origen o ON (
+    o.id_consulta IN (SELECT id_consulta FROM consulta c WHERE c.ced_pac = p.ced_pac)
+    OR o.proced_id IN (SELECT proced_id FROM procedimiento pr WHERE pr.Ced_Pac = p.ced_pac)
+    OR o.id_hospitalizacion IN (SELECT id_hospitalizacion FROM hospitalizacion h WHERE h.ced_pac = p.ced_pac)
+)
+JOIN factura f ON f.id_origen = o.id_origen
+GROUP BY p.nombre_pac;
+
+CREATE VIEW consulta_adicional_2 AS
+-- Promedio de duración de hospitalizaciones por médico y cuántos pacientes ha dado de alta
+SELECT nombre_med, AVG(DATEDIFF(fecha_alta, fecha_ingreso)) AS prom_duracion_hospi,
+COUNT(fecha_alta) AS cant_pacientes_alta
+FROM medico m
+JOIN hospitalizacion h ON h.ced_med = m.ced_med
+GROUP BY nombre_med;
+
+CREATE VIEW consulta_adicional_3 AS
+-- Médicos con el tiempo dedicado a consultas mayor al promedio
+SELECT nombre_med, SUM(duracion_min) AS tiempo_total
+FROM medico m
+JOIN consulta c ON c.ced_med = m.ced_med
+GROUP BY nombre_med
+HAVING tiempo_total > (
+	SELECT AVG(total_por_medico)
+	FROM (
+		SELECT SUM(c2.duracion_min) AS total_por_medico
+        FROM consulta c2
+        GROUP BY c2.ced_med
+    )AS totales
+);
+
+CREATE VIEW consulta_adicional_4 AS
+SELECT p.ced_pac, p.nombre_pac
+FROM paciente p
+WHERE NOT EXISTS (
+    SELECT m.medicamento_id
+    FROM medicamento m
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM orden_medicamento om
+        JOIN origen o ON o.id_origen = om.id_origen
+        WHERE om.medicamento_id = m.medicamento_id
+          AND (
+                o.id_consulta IN (SELECT id_consulta FROM consulta WHERE ced_pac = p.ced_pac)
+             OR o.proced_id   IN (SELECT proced_id FROM procedimiento WHERE Ced_Pac = p.ced_pac)
+             OR o.id_hospitalizacion IN (SELECT id_hospitalizacion FROM hospitalizacion WHERE ced_pac = p.ced_pac)
+          )
+    )
+);
+
+CREATE VIEW consulta_adicional_5 AS
+-- Médicos con promedio de dias de hospitalizaciones mayor al promedio de las hospitalizaciones
+SELECT m.nombre_med, AVG(DATEDIFF(fecha_alta, fecha_ingreso)) AS prom_dias_hospitalizacion
+FROM medico m
+JOIN hospitalizacion h ON m.ced_med = h.ced_med
+GROUP BY m.nombre_med
+HAVING AVG(DATEDIFF(fecha_alta, fecha_ingreso)) > (
+	SELECT AVG(promedio_medico)
+    FROM (
+		SELECT AVG(DATEDIFF(h2.fecha_alta, h2.fecha_ingreso)) AS promedio_medico
+        FROM hospitalizacion h2
+        JOIN medico m2 ON m2.ced_med = h2.ced_med
+        GROUP BY m2.ced_med
+    )AS tablas_promedios
+)
+ORDER BY prom_dias_hospitalizacion DESC;
+
 
 
 
