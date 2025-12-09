@@ -438,17 +438,47 @@ SELECT
 FROM hospitalizacion
 GROUP BY mes;
 
-CREATE VIEW consulta_2 AS
-SELECT 
-    m.ced_med,
-    m.nombre_med,
+CREATE OR REPLACE VIEW consulta_2 AS
+SELECT m.ced_med, m.nombre_med,
+    COUNT(DISTINCT c.id_consulta) AS total_consultas,
+    COUNT(DISTINCT h.id_hospitalizacion) AS total_hospitalizaciones,
+    COUNT(DISTINCT p.proced_id) AS total_procedimientos,
+    COALESCE(SUM(fC.montoTotal), 0) +
+    COALESCE(SUM(fH.montoTotal), 0) +
+    COALESCE(SUM(fP.montoTotal), 0) AS ingresos_generados,
     (
-        (SELECT COUNT(*) FROM Consulta c WHERE c.ced_med = m.ced_med) +
-        (SELECT COUNT(*) FROM Hospitalizacion h WHERE h.ced_med = m.ced_med) +
-        (SELECT COUNT(*) FROM Procedimiento p WHERE p.Ced_Med = m.ced_med)
-    ) AS productividad
+        COUNT(DISTINCT c.id_consulta) +
+        COUNT(DISTINCT h.id_hospitalizacion) +
+        COUNT(DISTINCT p.proced_id)
+    ) AS productividad_total
+
 FROM Medico m
-ORDER BY productividad DESC;
+
+-- Consultas
+LEFT JOIN Consulta c
+    ON c.ced_med = m.ced_med
+LEFT JOIN Origen oC
+    ON oC.id_consulta = c.id_consulta
+LEFT JOIN Factura fC
+    ON fC.id_origen = oC.id_origen
+    
+-- Hospitalizaciones
+LEFT JOIN Hospitalizacion h
+    ON h.ced_med = m.ced_med
+LEFT JOIN Origen oH
+    ON oH.id_hospitalizacion = h.id_hospitalizacion
+LEFT JOIN Factura fH
+    ON fH.id_origen = oH.id_origen
+
+-- Procedimientos
+LEFT JOIN Procedimiento p
+    ON p.Ced_Med = m.ced_med
+LEFT JOIN Origen oP
+    ON oP.proced_id = p.proced_id
+LEFT JOIN Factura fP
+    ON fP.id_origen = oP.id_origen
+GROUP BY m.ced_med, m.nombre_med;
+
 
 CREATE VIEW consulta_3 AS
 SELECT h1.ced_pac, p.nombre_pac, h1.fecha_ingreso AS ingreso_inicial, h2.fecha_ingreso AS readmision
